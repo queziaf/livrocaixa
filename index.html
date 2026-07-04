@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Livro-caixa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F2F0E8;
+    --paper-raised: #FAF9F4;
+    --ink: #1C2A22;
+    --ink-soft: #55604F;
+    --line: #D9D4C3;
+    --line-strong: #B9B29A;
+    --accent: #2F5D50;
+    --accent-soft: #E4EBE6;
+    --danger: #9C3B2E;
+    --danger-soft: #F3E3DF;
+    --warn: #96631E;
+    --warn-soft: #F3E9D4;
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .brand {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: -0.01em;
+  }
+  .brand span { color: var(--accent); }
+
+  .month-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  .month-nav button {
+    width: 32px; height: 32px;
+    border: none; background: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+  .month-nav button:hover { background: var(--accent-soft); color: var(--accent); }
+  .month-label {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 0 12px;
+    min-width: 130px;
+    text-align: center;
+    text-transform: capitalize;
+  }
+
+  /* ---------- Summary ---------- */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 32px;
+  }
+  .stat {
+    background: var(--paper-raised);
+    padding: 16px 18px;
+  }
+  .stat .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+  }
+  .stat .value {
+    font-family: var(--font-mono);
+    font-size: 20px;
+    font-weight: 500;
+  }
+  .stat.negative .value { color: var(--danger); }
+  .stat.positive .value { color: var(--accent); }
+
+  /* ---------- Sections ---------- */
+  .section-title {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .btn {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 7px;
+    border: 1px solid var(--line-strong);
+    background: var(--paper-raised);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.primary:hover { opacity: 0.9; color: #fff; }
+  .btn.ghost {
+    border-color: transparent;
+    background: none;
+    padding: 4px 8px;
+    color: var(--ink-soft);
+  }
+  .btn.ghost:hover { color: var(--danger); }
+
+  .panel {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+
+  table.ledger {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  table.ledger th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
+    font-weight: 500;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  table.ledger td {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  table.ledger tr:last-child td { border-bottom: none; }
+  table.ledger tr.overdue td { background: var(--danger-soft); }
+  table.ledger tr.due-soon td { background: var(--warn-soft); }
+  table.ledger .amount {
+    font-family: var(--font-mono);
+    text-align: right;
+    white-space: nowrap;
+  }
+  table.ledger .desc { font-weight: 500; }
+  table.ledger .meta { color: var(--ink-soft); font-size: 13px; }
+  table.ledger .row-actions {
+    text-align: right;
+    white-space: nowrap;
+  }
+  table.ledger .row-actions .btn.ghost { visibility: hidden; }
+  table.ledger tr:hover .row-actions .btn.ghost { visibility: visible; }
+
+  input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .cell-input {
+    width: 100%;
+    border: 1px solid transparent;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    padding: 4px 6px;
+    border-radius: 5px;
+  }
+  .cell-input:hover { border-color: var(--line-strong); }
+  .cell-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+  }
+  input.cell-input.dia-input {
+    width: 56px;
+    text-align: center;
+    font-family: var(--font-mono);
+  }
+  input.cell-input.amount-input {
+    text-align: right;
+    font-family: var(--font-mono);
+    min-width: 90px;
+  }
+  select.cell-input { cursor: pointer; }
+  table.ledger td.desc-cell { padding: 4px 10px; }
+  table.ledger td.dia-cell,
+  table.ledger td.amount-cell { padding: 4px 10px; }
+
+  .empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+
+  .panel-footer {
+    padding: 10px 16px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ---------- Year view ---------- */
+  .year-panel { padding: 20px 16px 10px; }
+  .bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 140px;
+    margin-bottom: 8px;
+  }
+  .bar-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    cursor: pointer;
+  }
+  .bar-col .bar {
+    width: 100%;
+    max-width: 34px;
+    border-radius: 3px 3px 0 0;
+    background: var(--line-strong);
+    transition: background 0.15s;
+  }
+  .bar-col.current .bar { background: var(--accent); }
+  .bar-col.negative .bar { background: var(--danger); opacity: 0.75; }
+  .bar-col:hover .bar { background: var(--accent); }
+  .bar-col .m-label {
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    text-transform: lowercase;
+  }
+  .bar-col.current .m-label { color: var(--accent); font-weight: 600; }
+
+  footer.note {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 12px;
+    margin-top: 40px;
+  }
+
+  @media (max-width: 640px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+    table.ledger .meta { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Livro-<span>caixa</span></div>
+    <div class="month-nav">
+      <button id="prevMonth" aria-label="Mês anterior">‹</button>
+      <div class="month-label" id="monthLabel">junho 2026</div>
+      <button id="nextMonth" aria-label="Próximo mês">›</button>
+    </div>
+  </header>
+
+  <section class="summary" id="summary"></section>
+
+  <div class="section-title">
+    Contas do mês
+    <button class="btn primary" id="addExpenseBtn">+ conta</button>
+  </div>
+  <div class="panel">
+    <table class="ledger" id="expenseTable">
+      <thead>
+        <tr>
+          <th style="width:32px"></th>
+          <th>Descrição</th>
+          <th class="meta">Vencimento</th>
+          <th class="amount">Valor</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="expenseBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-title">
+    Receitas do mês
+    <button class="btn primary" id="addIncomeBtn">+ receita</button>
+  </div>
+  <div class="panel">
+    <table class="ledger" id="incomeTable">
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          <th class="meta">Recebido em</th>
+          <th class="amount">Valor</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="incomeBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-title">Visão anual — <span id="yearLabel"></span></div>
+  <div class="panel year-panel">
+    <div class="bars" id="yearBars"></div>
+  </div>
+
+  <div class="section-title">Contas fixas cadastradas</div>
+  <div class="panel">
+    <table class="ledger" id="recurringTable">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th class="meta">Dia de vencimento</th>
+          <th class="amount">Valor de referência</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="recurringBody"></tbody>
+    </table>
+    <div class="panel-footer">
+      <button class="btn" id="addRecurringBtn">+ nova conta fixa</button>
+    </div>
+  </div>
+
+  <footer class="note">Os dados ficam salvos apenas neste navegador (localStorage).</footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
