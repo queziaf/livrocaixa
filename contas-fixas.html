@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contas fixas — Livro-caixa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Livro-<span>caixa</span></div>
+    <a class="page-nav" href="index.html">← Painel mensal</a>
+  </header>
+
+  <div class="section-title">
+    Contas fixas cadastradas
+    <button class="btn primary" id="addRecurringBtn">+ nova conta fixa</button>
+  </div>
+  <div class="panel">
+    <table class="ledger" id="recurringTable">
+      <thead>
+        <tr>
+          <th>Descrição</th>
+          <th class="meta">Dia de vencimento</th>
+          <th class="amount">Valor de referência</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="recurringBody"></tbody>
+    </table>
+  </div>
+
+  <footer class="note">
+    O valor aqui é só uma referência — o valor real de cada mês é lançado no painel mensal.
+    Renomear ou mudar o dia de vencimento aqui atualiza automaticamente os meses já lançados.
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="contas-fixas.js"></script>
+</body>
+</html>

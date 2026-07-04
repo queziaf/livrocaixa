@@ -4,6 +4,14 @@ App pessoal de controle de gastos e receitas mensais. Roda 100% no navegador,
 sem servidor — os dados ficam salvos no `localStorage` do computador onde
 você usar o app.
 
+## Arquivos
+- `index.html` — painel mensal (contas do mês, receitas, visão anual)
+- `contas-fixas.html` — página de gerenciamento das contas fixas
+- `styles.css` — visual, compartilhado pelas duas páginas
+- `data.js` — dados e regras compartilhadas (carregar sempre antes dos outros scripts)
+- `app.js` — lógica do painel mensal
+- `contas-fixas.js` — lógica da página de contas fixas
+
 ## Como usar localmente
 Basta abrir o arquivo `index.html` no navegador (duplo clique já funciona).
 
@@ -42,6 +50,7 @@ git push
 - Os gastos e receitas ficam salvos apenas no navegador que você usar.
 - Se limpar os dados do navegador (cache/localStorage) ou usar outro
   computador, o histórico não estará lá — não é sincronizado na nuvem.
-- As 10 contas fixas da sua planilha já vêm pré-cadastradas. Você pode
-  editar o valor de cada uma mês a mês (elas variam), adicionar novas
-  contas fixas, contas avulsas, e lançar receitas por categoria.
+- As 10 contas fixas da sua planilha já vêm pré-cadastradas (gerenciadas na
+  página "Contas fixas"). Você pode editar o valor de cada uma mês a mês
+  (elas variam) no painel mensal, adicionar novas contas fixas, contas
+  avulsas, e lançar receitas por categoria.
