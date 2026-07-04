@@ -1,4 +1,4 @@
-# Livro-caixa
+# Livro-caixa l
 
 App pessoal de controle de gastos e receitas mensais. Roda 100% no navegador,
 sem servidor — os dados ficam salvos no `localStorage` do computador onde
