@@ -10,13 +10,11 @@ function render() {
   renderSummary();
   renderExpenses();
   renderIncomes();
-  renderYear();
 }
 
 function renderHeader() {
   document.getElementById("monthLabel").textContent =
     `${MONTH_NAMES[viewMonth]} ${viewYear}`;
-  document.getElementById("yearLabel").textContent = viewYear;
 }
 
 function renderSummary() {
@@ -139,28 +137,6 @@ function renderIncomes() {
   `).join("");
 }
 
-function renderYear() {
-  const container = document.getElementById("yearBars");
-  const totals = [];
-  for (let m = 0; m < 12; m++) {
-    totals.push({
-      gasto: totalExpenses(viewYear, m),
-      saldo: totalIncome(viewYear, m) - totalExpenses(viewYear, m),
-    });
-  }
-  const maxGasto = Math.max(1, ...totals.map(t => t.gasto));
-  container.innerHTML = totals.map((t, m) => {
-    const heightPct = Math.max(2, (t.gasto / maxGasto) * 100);
-    const isCurrent = m === viewMonth;
-    const negative = t.saldo < 0;
-    return `
-      <div class="bar-col ${isCurrent ? "current" : ""} ${negative ? "negative" : ""}" data-goto-month="${m}" title="${MONTH_NAMES[m]}: gasto ${fmtMoney(t.gasto)}, saldo ${fmtMoney(t.saldo)}">
-        <div class="bar" style="height:${heightPct}%"></div>
-        <div class="m-label">${MONTH_NAMES[m].slice(0, 3)}</div>
-      </div>
-    `;
-  }).join("");
-}
 
 /* ---------- Navegação de mês ---------- */
 
@@ -173,13 +149,6 @@ document.getElementById("prevMonth").addEventListener("click", () => {
 document.getElementById("nextMonth").addEventListener("click", () => {
   viewMonth += 1;
   if (viewMonth > 11) { viewMonth = 0; viewYear += 1; }
-  render();
-});
-
-document.getElementById("yearBars").addEventListener("click", (e) => {
-  const col = e.target.closest("[data-goto-month]");
-  if (!col) return;
-  viewMonth = parseInt(col.dataset.gotoMonth, 10);
   render();
 });
 
@@ -216,7 +185,6 @@ document.getElementById("expenseBody").addEventListener("change", (e) => {
   saveData();
   renderSummary();
   renderExpenses();
-  renderYear();
 });
 
 document.getElementById("expenseBody").addEventListener("click", (e) => {
@@ -226,7 +194,6 @@ document.getElementById("expenseBody").addEventListener("click", (e) => {
   saveData();
   renderSummary();
   renderExpenses();
-  renderYear();
 });
 
 document.getElementById("addExpenseBtn").addEventListener("click", () => {
@@ -238,7 +205,6 @@ document.getElementById("addExpenseBtn").addEventListener("click", () => {
   saveData();
   renderSummary();
   renderExpenses();
-  renderYear();
   const el = document.querySelector(`[data-focus-id="desc-${newExp.id}"]`);
   if (el) el.focus();
 });
@@ -277,7 +243,6 @@ document.getElementById("incomeBody").addEventListener("change", (e) => {
   saveData();
   renderSummary();
   renderIncomes();
-  renderYear();
 });
 
 document.getElementById("incomeBody").addEventListener("click", (e) => {
@@ -287,7 +252,6 @@ document.getElementById("incomeBody").addEventListener("click", (e) => {
   saveData();
   renderSummary();
   renderIncomes();
-  renderYear();
 });
 
 document.getElementById("addIncomeBtn").addEventListener("click", () => {
@@ -299,7 +263,6 @@ document.getElementById("addIncomeBtn").addEventListener("click", () => {
   saveData();
   renderSummary();
   renderIncomes();
-  renderYear();
   const el = document.querySelector(`[data-focus-id="valor-${newInc.id}"]`);
   if (el) el.focus();
 });

@@ -5,12 +5,14 @@ sem servidor — os dados ficam salvos no `localStorage` do computador onde
 você usar o app.
 
 ## Arquivos
-- `index.html` — painel mensal (contas do mês, receitas, visão anual)
+- `index.html` — painel mensal (contas do mês, receitas)
 - `contas-fixas.html` — página de gerenciamento das contas fixas
-- `styles.css` — visual, compartilhado pelas duas páginas
+- `graficos.html` — página de gráficos e visão anual
+- `styles.css` — visual, compartilhado pelas três páginas
 - `data.js` — dados e regras compartilhadas (carregar sempre antes dos outros scripts)
 - `app.js` — lógica do painel mensal
 - `contas-fixas.js` — lógica da página de contas fixas
+- `graficos.js` — lógica da página de gráficos
 
 ## Como usar localmente
 Basta abrir o arquivo `index.html` no navegador (duplo clique já funciona).

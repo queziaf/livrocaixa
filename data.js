@@ -125,6 +125,33 @@ function totalIncome(year, month) {
   return incomesForMonth(year, month).reduce((sum, i) => sum + i.valor, 0);
 }
 
+/* Totais dos 12 meses de um ano — usado nos gráficos. */
+function yearTotals(year) {
+  const totals = [];
+  for (let m = 0; m < 12; m++) {
+    const gasto = totalExpenses(year, m);
+    const renda = totalIncome(year, m);
+    totals.push({ gasto, renda, saldo: renda - gasto });
+  }
+  return totals;
+}
+
+/* Soma o valor de cada conta (por descrição) ao longo do ano inteiro,
+   do maior para o menor — mostra onde o dinheiro mais pesa no orçamento. */
+function rankExpensesForYear(year) {
+  const map = {};
+  for (let m = 0; m < 12; m++) {
+    expensesForMonth(year, m).forEach(e => {
+      const nome = e.descricao.trim() || "(sem nome)";
+      map[nome] = (map[nome] || 0) + e.valor;
+    });
+  }
+  return Object.entries(map)
+    .map(([descricao, total]) => ({ descricao, total }))
+    .filter(r => r.total > 0)
+    .sort((a, b) => b.total - a.total);
+}
+
 /* Atualiza um campo de uma conta fixa (descrição/dia/valor). Quando o campo
    é descrição ou dia, propaga a mudança para todas as entradas de gasto já
    geradas a partir dessa conta fixa — sem isso, renomear uma conta fixa não

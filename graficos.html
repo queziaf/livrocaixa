@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gráficos — Livro-caixa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Livro-<span>caixa</span></div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="month-nav">
+        <button id="prevYear" aria-label="Ano anterior">‹</button>
+        <div class="month-label" id="yearLabel">2026</div>
+        <button id="nextYear" aria-label="Próximo ano">›</button>
+      </div>
+      <a class="page-nav" href="index.html">← Painel mensal</a>
+      <a class="page-nav" href="contas-fixas.html">Contas fixas →</a>
+    </div>
+  </header>
+
+  <section class="summary" id="summary"></section>
+
+  <div class="section-title">Gasto x renda por mês</div>
+  <div class="panel chart-panel">
+    <div class="chart-legend">
+      <span><span class="swatch gasto"></span>Gasto</span>
+      <span><span class="swatch renda"></span>Renda</span>
+    </div>
+    <div class="bars" id="gastoRendaBars"></div>
+  </div>
+
+  <div class="section-title">Progresso do saldo por mês</div>
+  <div class="panel chart-panel">
+    <div class="bars" id="saldoBars"></div>
+  </div>
+
+  <div class="section-title">Saldo acumulado no ano</div>
+  <div class="panel chart-panel">
+    <div id="trendChart"></div>
+  </div>
+
+  <div class="section-title">Maiores contas do ano</div>
+  <div class="panel" id="rankPanel"></div>
+
+  <footer class="note">Os dados ficam salvos apenas neste navegador (localStorage).</footer>
+</div>
+
+<script src="data.js"></script>
+<script src="graficos.js"></script>
+</body>
+</html>
