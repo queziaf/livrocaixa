@@ -283,7 +283,59 @@
 
   @media (max-width: 640px) {
     .summary { grid-template-columns: repeat(2, 1fr); }
-    table.ledger .meta { display: none; }
+
+    /* Cada linha da tabela vira um "cartão" de duas linhas, em vez de
+       colunas apertadas que cortavam campos em telas estreitas. */
+    table.ledger thead { display: none; }
+    table.ledger, table.ledger tbody { display: block; width: 100%; }
+
+    table.ledger tr {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 10px 12px;
+      gap: 6px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    table.ledger tr:last-child { border-bottom: none; }
+
+    table.ledger td {
+      display: flex;
+      align-items: center;
+      border-bottom: none;
+      padding: 0;
+    }
+
+    /* Linha 1: checkbox (se houver) + descrição, ocupando a largura toda */
+    table.ledger td.check-cell { flex: 0 0 auto; }
+    table.ledger td.desc-cell { flex: 1 1 0%; min-width: 0; }
+
+    /* Linha 2: dia + valor + remover (quebram automaticamente por falta
+       de espaço na linha 1, já que a descrição já preenche tudo) */
+    table.ledger td.dia-cell { flex: 0 0 auto; }
+    table.ledger td.amount-cell { flex: 1 1 auto; min-width: 0; justify-content: flex-start; }
+    table.ledger td.row-actions { flex: 0 0 auto; margin-left: auto; }
+
+    table.ledger td.dia-cell::before {
+      content: "dia";
+      color: var(--ink-soft);
+      font-size: 11px;
+      margin-right: 4px;
+    }
+    table.ledger td.amount-cell::before {
+      content: "R$";
+      color: var(--ink-soft);
+      font-size: 12px;
+      margin-right: 4px;
+    }
+
+    table.ledger td.empty { flex: 1 1 100%; justify-content: center; }
+    table.ledger .amount { text-align: left; }
+    input.cell-input.amount-input { min-width: 76px; text-align: left; }
+    input.cell-input.dia-input { width: 40px; }
+
+    /* Sem hover no toque — o botão de remover precisa ficar sempre visível */
+    table.ledger .row-actions .btn.ghost { visibility: visible; }
   }
 
 /* ---------- Navegação entre páginas ---------- */

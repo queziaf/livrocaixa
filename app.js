@@ -80,7 +80,7 @@ function renderExpenses() {
     const placeholder = rec ? `ref. ${fmtMoney(rec.valor)}` : "0,00";
     return `
       <tr class="${rowClass}">
-        <td><input type="checkbox" data-expense-id="${e.id}" ${e.pago ? "checked" : ""} /></td>
+        <td class="check-cell"><input type="checkbox" data-expense-id="${e.id}" ${e.pago ? "checked" : ""} /></td>
         <td class="desc-cell">
           <input class="cell-input" type="text" data-field="descricao" data-id="${e.id}" value="${escapeAttr(e.descricao)}" />
         </td>
