@@ -1,7 +1,8 @@
 /* Livro-caixa — dados e regras compartilhadas entre as páginas.
-   Este arquivo deve ser incluído ANTES de app.js ou contas-fixas.js. */
+   Depende de supabase-client.js. Deve ser incluído antes de auth.js e do
+   script de cada página (app.js / contas-fixas.js / graficos.js). */
 
-const STORAGE_KEY = "livro-caixa-data-v1";
+const LOCAL_BACKUP_KEY = "livro-caixa-data-v1"; // usado só para a migração única
 
 const MONTH_NAMES = [
   "janeiro","fevereiro","março","abril","maio","junho",
@@ -31,42 +32,14 @@ function escapeAttr(str) {
   return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function loadData() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    try { return JSON.parse(raw); } catch (e) { /* cai para os padrões abaixo */ }
-  }
-  return {
-    recurring: DEFAULT_RECURRING.map(r => ({ id: uid(), ...r })),
-    expenses: [],       // { id, recurringId|null, mes, ano, descricao, dia, valor, pago }
-    incomeCategories: [...DEFAULT_INCOME_CATEGORIES],
-    incomes: [],        // { id, categoria, mes, ano, dia, valor }
-    _migratedZeroDefaults: false,
-  };
-}
-
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
-
-let data = loadData();
-
-/* Migração ÚNICA (roda só uma vez, guardada por uma flag salva nos dados):
-   versões antigas do app copiavam o valor de referência para contas novas.
-   Zera apenas as que ainda não tinham sido marcadas como pagas na época.
-   Sem a flag, isso rodaria toda vez que o app abrisse e apagaria valores
-   reais digitados que coincidissem com o valor de referência. */
-if (!data._migratedZeroDefaults) {
-  data.expenses.forEach(e => {
-    if (!e.recurringId || e.pago) return;
-    const rec = data.recurring.find(r => r.id === e.recurringId);
-    if (rec && e.valor === rec.valor) {
-      e.valor = 0;
-    }
-  });
-  data._migratedZeroDefaults = true;
-  saveData();
-}
+/* Espelho em memória dos dados do usuário logado. Populado por
+   fetchAllData() depois do login — veja auth.js. */
+let data = {
+  recurring: [],
+  expenses: [],
+  incomeCategories: [],
+  incomes: [],
+};
 
 const today = new Date();
 
@@ -74,35 +47,174 @@ function fmtMoney(v) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/* ---------- Camada de acesso ao Supabase ---------- */
+
+async function dbInsert(table, rows) {
+  const { error } = await supabaseClient.from(table).insert(rows);
+  if (error) console.error(`Erro ao salvar em "${table}":`, error);
+  return !error;
+}
+
+async function dbUpdate(table, id, patch) {
+  const { error } = await supabaseClient.from(table).update(patch).eq("id", id);
+  if (error) console.error(`Erro ao atualizar "${table}":`, error);
+  return !error;
+}
+
+async function dbDelete(table, id) {
+  const { error } = await supabaseClient.from(table).delete().eq("id", id);
+  if (error) console.error(`Erro ao remover de "${table}":`, error);
+  return !error;
+}
+
+/* Carrega tudo do Supabase para dentro de `data`. Na primeira vez que o
+   usuário loga (nenhuma conta fixa cadastrada), semeia com os padrões. */
+async function fetchAllData() {
+  const [recRes, expRes, catRes, incRes] = await Promise.all([
+    supabaseClient.from("recurring").select("*"),
+    supabaseClient.from("expenses").select("*"),
+    supabaseClient.from("income_categories").select("*"),
+    supabaseClient.from("incomes").select("*"),
+  ]);
+
+  const err = recRes.error || expRes.error || catRes.error || incRes.error;
+  if (err) {
+    console.error("Erro ao carregar dados do Supabase:", err);
+    alert("Não foi possível carregar seus dados agora. Veja o console (F12) para detalhes.");
+    return;
+  }
+
+  if (recRes.data.length === 0) {
+    const seed = DEFAULT_RECURRING.map(r => ({ id: uid(), ...r }));
+    await dbInsert("recurring", seed.map(r => ({ id: r.id, descricao: r.descricao, dia: r.dia, valor: r.valor })));
+    data.recurring = seed;
+  } else {
+    data.recurring = recRes.data.map(r => ({ id: r.id, descricao: r.descricao, dia: r.dia, valor: Number(r.valor) }));
+  }
+
+  if (catRes.data.length === 0) {
+    const seedCats = DEFAULT_INCOME_CATEGORIES.map(nome => ({ id: uid(), nome }));
+    await dbInsert("income_categories", seedCats);
+    data.incomeCategories = seedCats.map(c => c.nome);
+  } else {
+    data.incomeCategories = catRes.data.map(c => c.nome);
+  }
+
+  data.expenses = expRes.data.map(e => ({
+    id: e.id, recurringId: e.recurring_id, mes: e.mes, ano: e.ano,
+    descricao: e.descricao, dia: e.dia, valor: Number(e.valor), pago: e.pago,
+  }));
+
+  data.incomes = incRes.data.map(i => ({
+    id: i.id, categoria: i.categoria, mes: i.mes, ano: i.ano, dia: i.dia, valor: Number(i.valor),
+  }));
+}
+
+/* Importa, uma única vez, os dados que existiam no localStorage deste
+   navegador (versão anterior do app, antes da sincronização em nuvem). */
+async function migrateLocalDataToSupabase() {
+  const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
+  if (!raw) return false;
+  let local;
+  try { local = JSON.parse(raw); } catch (e) { return false; }
+
+  if (local.recurring?.length) {
+    await dbInsert("recurring", local.recurring.map(r => ({ id: r.id, descricao: r.descricao, dia: r.dia, valor: r.valor })));
+  }
+  if (local.expenses?.length) {
+    await dbInsert("expenses", local.expenses.map(e => ({
+      id: e.id, recurring_id: e.recurringId, mes: e.mes, ano: e.ano,
+      descricao: e.descricao, dia: e.dia, valor: e.valor, pago: e.pago,
+    })));
+  }
+  if (local.incomeCategories?.length) {
+    await dbInsert("income_categories", local.incomeCategories.map(nome => ({ id: uid(), nome })));
+  }
+  if (local.incomes?.length) {
+    await dbInsert("incomes", local.incomes.map(i => ({
+      id: i.id, categoria: i.categoria, mes: i.mes, ano: i.ano, dia: i.dia, valor: i.valor,
+    })));
+  }
+  localStorage.removeItem(LOCAL_BACKUP_KEY);
+  return true;
+}
+
+/* ---------- Contas fixas ---------- */
+
+async function addRecurring(rec) {
+  data.recurring.push(rec);
+  await dbInsert("recurring", { id: rec.id, descricao: rec.descricao, dia: rec.dia, valor: rec.valor });
+}
+
+async function updateRecurringField(id, field, value) {
+  const rec = data.recurring.find(r => r.id === id);
+  if (!rec) return;
+  rec[field] = value;
+  await dbUpdate("recurring", id, { [field]: value });
+
+  // Propaga descrição/dia para as contas do mês já geradas a partir dela
+  if (field === "descricao" || field === "dia") {
+    data.expenses.forEach(e => { if (e.recurringId === id) e[field] = value; });
+    const { error } = await supabaseClient.from("expenses").update({ [field]: value }).eq("recurring_id", id);
+    if (error) console.error("Erro ao propagar alteração da conta fixa:", error);
+  }
+}
+
+async function deleteRecurring(id) {
+  data.recurring = data.recurring.filter(r => r.id !== id);
+  data.expenses.forEach(e => { if (e.recurringId === id) e.recurringId = null; });
+  await dbDelete("recurring", id);
+}
+
+/* ---------- Contas do mês (gastos) ---------- */
+
+async function addExpense(exp) {
+  data.expenses.push(exp);
+  await dbInsert("expenses", {
+    id: exp.id, recurring_id: exp.recurringId, mes: exp.mes, ano: exp.ano,
+    descricao: exp.descricao, dia: exp.dia, valor: exp.valor, pago: exp.pago,
+  });
+}
+
+async function updateExpenseField(id, field, value) {
+  const exp = data.expenses.find(e => e.id === id);
+  if (!exp) return;
+  exp[field] = value;
+  await dbUpdate("expenses", id, { [field]: value });
+}
+
+async function deleteExpense(id) {
+  data.expenses = data.expenses.filter(e => e.id !== id);
+  await dbDelete("expenses", id);
+}
+
 /* Garante que toda conta fixa tenha uma entrada de gasto no mês indicado */
-function ensureMonthExpenses(year, month) {
-  let changed = false;
+async function ensureMonthExpenses(year, month) {
+  const toInsert = [];
   data.recurring.forEach(rec => {
     const exists = data.expenses.some(e =>
       e.recurringId === rec.id && e.mes === month && e.ano === year
     );
     if (!exists) {
-      data.expenses.push({
-        id: uid(),
-        recurringId: rec.id,
-        mes: month,
-        ano: year,
-        descricao: rec.descricao,
-        dia: rec.dia,
-        valor: 0,
-        pago: false,
+      const novo = {
+        id: uid(), recurringId: rec.id, mes: month, ano: year,
+        descricao: rec.descricao, dia: rec.dia, valor: 0, pago: false,
+      };
+      data.expenses.push(novo);
+      toInsert.push({
+        id: novo.id, recurring_id: novo.recurringId, mes: novo.mes, ano: novo.ano,
+        descricao: novo.descricao, dia: novo.dia, valor: novo.valor, pago: novo.pago,
       });
-      changed = true;
     }
   });
-  if (changed) saveData();
+  if (toInsert.length) await dbInsert("expenses", toInsert);
 }
 
-/* Garante que os 12 meses do ano (e dezembro do ano anterior, usado na
-   comparação de janeiro) tenham as contas fixas geradas. */
-function ensureYearExpenses(year) {
-  for (let m = 0; m < 12; m++) ensureMonthExpenses(year, m);
-  ensureMonthExpenses(year - 1, 11);
+/* Garante os 12 meses do ano (e dezembro do ano anterior, usado na
+   comparação de janeiro). */
+async function ensureYearExpenses(year) {
+  for (let m = 0; m < 12; m++) await ensureMonthExpenses(year, m);
+  await ensureMonthExpenses(year - 1, 11);
 }
 
 function expensesForMonth(year, month) {
@@ -111,21 +223,49 @@ function expensesForMonth(year, month) {
     .sort((a, b) => a.dia - b.dia);
 }
 
+function totalExpenses(year, month) {
+  return expensesForMonth(year, month).reduce((sum, e) => sum + e.valor, 0);
+}
+
+/* ---------- Receitas ---------- */
+
+async function addIncome(inc) {
+  data.incomes.push(inc);
+  await dbInsert("incomes", {
+    id: inc.id, categoria: inc.categoria, mes: inc.mes, ano: inc.ano, dia: inc.dia, valor: inc.valor,
+  });
+}
+
+async function updateIncomeField(id, field, value) {
+  const inc = data.incomes.find(i => i.id === id);
+  if (!inc) return;
+  inc[field] = value;
+  await dbUpdate("incomes", id, { [field]: value });
+}
+
+async function deleteIncome(id) {
+  data.incomes = data.incomes.filter(i => i.id !== id);
+  await dbDelete("incomes", id);
+}
+
+async function addIncomeCategory(nome) {
+  if (data.incomeCategories.includes(nome)) return;
+  data.incomeCategories.push(nome);
+  await dbInsert("income_categories", { id: uid(), nome });
+}
+
 function incomesForMonth(year, month) {
   return data.incomes
     .filter(i => i.mes === month && i.ano === year)
     .sort((a, b) => a.dia - b.dia);
 }
 
-function totalExpenses(year, month) {
-  return expensesForMonth(year, month).reduce((sum, e) => sum + e.valor, 0);
-}
-
 function totalIncome(year, month) {
   return incomesForMonth(year, month).reduce((sum, i) => sum + i.valor, 0);
 }
 
-/* Totais dos 12 meses de um ano — usado nos gráficos. */
+/* ---------- Agregações anuais (página de gráficos) ---------- */
+
 function yearTotals(year) {
   const totals = [];
   for (let m = 0; m < 12; m++) {
@@ -136,8 +276,6 @@ function yearTotals(year) {
   return totals;
 }
 
-/* Soma o valor de cada conta (por descrição) ao longo do ano inteiro,
-   do maior para o menor — mostra onde o dinheiro mais pesa no orçamento. */
 function rankExpensesForYear(year) {
   const map = {};
   for (let m = 0; m < 12; m++) {
@@ -152,24 +290,8 @@ function rankExpensesForYear(year) {
     .sort((a, b) => b.total - a.total);
 }
 
-/* Atualiza um campo de uma conta fixa (descrição/dia/valor). Quando o campo
-   é descrição ou dia, propaga a mudança para todas as entradas de gasto já
-   geradas a partir dessa conta fixa — sem isso, renomear uma conta fixa não
-   refletia nos meses já lançados. O valor não é propagado de propósito: ele
-   é só uma referência, o valor real de cada mês é independente. */
-function updateRecurringField(id, field, value) {
-  const rec = data.recurring.find(r => r.id === id);
-  if (!rec) return;
-  rec[field] = value;
-  if (field === "descricao" || field === "dia") {
-    data.expenses.forEach(e => {
-      if (e.recurringId === id) e[field] = value;
-    });
-  }
-  saveData();
-}
+/* ---------- Utilitário: Enter tira o foco do campo (dispara "change") ---------- */
 
-/* Utilitário: pressionar Enter tira o foco do campo (dispara "change") */
 function bindEnterBlurs(containerId) {
   const el = document.getElementById(containerId);
   if (!el) return;

@@ -22,6 +22,7 @@
       </div>
       <a class="page-nav" href="graficos.html">Gráficos →</a>
       <a class="page-nav" href="contas-fixas.html">Contas fixas →</a>
+      <a class="page-nav" href="#" id="logoutLink">Sair</a>
     </div>
   </header>
 
@@ -64,10 +65,14 @@
     </table>
   </div>
 
-  <footer class="note">Os dados ficam salvos apenas neste navegador (localStorage).</footer>
+  <footer class="note">Seus dados são salvos automaticamente e sincronizados entre dispositivos.</footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="supabase-client.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>

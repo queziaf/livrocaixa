@@ -1,11 +1,11 @@
 /* Livro-caixa — painel mensal (index.html).
-   Depende de data.js, que deve ser incluído antes deste arquivo. */
+   Depende de data.js e auth.js, incluídos antes deste arquivo. */
 
 let viewYear = today.getFullYear();
 let viewMonth = today.getMonth(); // 0-indexed
 
-function render() {
-  ensureYearExpenses(viewYear);
+async function render() {
+  await ensureYearExpenses(viewYear);
   renderHeader();
   renderSummary();
   renderExpenses();
@@ -33,8 +33,7 @@ function renderSummary() {
     variacaoClass = variacao > 0 ? "negative" : "positive";
   }
 
-  const el = document.getElementById("summary");
-  el.innerHTML = `
+  document.getElementById("summary").innerHTML = `
     <div class="stat">
       <div class="label">Gasto do mês</div>
       <div class="value">${fmtMoney(gasto)}</div>
@@ -83,17 +82,14 @@ function renderExpenses() {
       <tr class="${rowClass}">
         <td><input type="checkbox" data-expense-id="${e.id}" ${e.pago ? "checked" : ""} /></td>
         <td class="desc-cell">
-          <input class="cell-input" type="text" data-focus-id="desc-${e.id}"
-                 data-field="descricao" data-id="${e.id}" value="${escapeAttr(e.descricao)}" />
+          <input class="cell-input" type="text" data-field="descricao" data-id="${e.id}" value="${escapeAttr(e.descricao)}" />
         </td>
         <td class="dia-cell meta">
-          <input class="cell-input dia-input" type="number" min="1" max="31" data-focus-id="dia-${e.id}"
-                 data-field="dia" data-id="${e.id}" value="${e.dia}" />
+          <input class="cell-input dia-input" type="number" min="1" max="31" data-field="dia" data-id="${e.id}" value="${e.dia}" />
         </td>
         <td class="amount-cell amount">
-          <input class="cell-input amount-input" type="number" step="0.01" data-focus-id="valor-${e.id}"
-                 data-field="valor" data-id="${e.id}" value="${e.valor === 0 ? "" : e.valor}"
-                 placeholder="${placeholder}" />
+          <input class="cell-input amount-input" type="number" step="0.01" data-field="valor" data-id="${e.id}"
+                 value="${e.valor === 0 ? "" : e.valor}" placeholder="${placeholder}" />
         </td>
         <td class="row-actions">
           <button class="btn ghost" data-delete-expense="${e.id}" aria-label="Remover">remover</button>
@@ -115,7 +111,7 @@ function renderIncomes() {
   body.innerHTML = list.map(i => `
     <tr>
       <td class="desc-cell">
-        <select class="cell-input" data-focus-id="cat-${i.id}" data-field="categoria" data-id="${i.id}">
+        <select class="cell-input" data-field="categoria" data-id="${i.id}">
           ${data.incomeCategories.map(c =>
             `<option value="${escapeAttr(c)}" ${c === i.categoria ? "selected" : ""}>${c}</option>`
           ).join("")}
@@ -123,12 +119,11 @@ function renderIncomes() {
         </select>
       </td>
       <td class="dia-cell meta">
-        <input class="cell-input dia-input" type="number" min="1" max="31" data-focus-id="dia-${i.id}"
-               data-field="dia" data-id="${i.id}" value="${i.dia}" />
+        <input class="cell-input dia-input" type="number" min="1" max="31" data-field="dia" data-id="${i.id}" value="${i.dia}" />
       </td>
       <td class="amount-cell amount">
-        <input class="cell-input amount-input" type="number" step="0.01" data-focus-id="valor-${i.id}"
-               data-field="valor" data-id="${i.id}" value="${i.valor === 0 ? "" : i.valor}" placeholder="0,00" />
+        <input class="cell-input amount-input" type="number" step="0.01" data-field="valor" data-id="${i.id}"
+               value="${i.valor === 0 ? "" : i.valor}" placeholder="0,00" />
       </td>
       <td class="row-actions">
         <button class="btn ghost" data-delete-income="${i.id}">remover</button>
@@ -137,19 +132,18 @@ function renderIncomes() {
   `).join("");
 }
 
-
 /* ---------- Navegação de mês ---------- */
 
-document.getElementById("prevMonth").addEventListener("click", () => {
+document.getElementById("prevMonth").addEventListener("click", async () => {
   viewMonth -= 1;
   if (viewMonth < 0) { viewMonth = 11; viewYear -= 1; }
-  render();
+  await render();
 });
 
-document.getElementById("nextMonth").addEventListener("click", () => {
+document.getElementById("nextMonth").addEventListener("click", async () => {
   viewMonth += 1;
   if (viewMonth > 11) { viewMonth = 0; viewYear += 1; }
-  render();
+  await render();
 });
 
 bindEnterBlurs("expenseBody");
@@ -157,11 +151,9 @@ bindEnterBlurs("incomeBody");
 
 /* ---------- Contas do mês: checkbox + edição inline + remover + adicionar ---------- */
 
-document.getElementById("expenseBody").addEventListener("change", (e) => {
+document.getElementById("expenseBody").addEventListener("change", async (e) => {
   if (e.target.type === "checkbox" && e.target.dataset.expenseId) {
-    const exp = data.expenses.find(x => x.id === e.target.dataset.expenseId);
-    exp.pago = e.target.checked;
-    saveData();
+    await updateExpenseField(e.target.dataset.expenseId, "pago", e.target.checked);
     renderSummary();
     renderExpenses();
     return;
@@ -173,45 +165,44 @@ document.getElementById("expenseBody").addEventListener("change", (e) => {
   const exp = data.expenses.find(x => x.id === id);
   if (!exp) return;
 
+  let value;
   if (field === "descricao") {
-    exp.descricao = e.target.value.trim();
+    value = e.target.value.trim();
   } else if (field === "dia") {
     const v = parseInt(e.target.value, 10);
-    exp.dia = (v >= 1 && v <= 31) ? v : exp.dia;
+    value = (v >= 1 && v <= 31) ? v : exp.dia;
   } else if (field === "valor") {
     const v = parseFloat(e.target.value);
-    exp.valor = isNaN(v) ? 0 : v;
+    value = isNaN(v) ? 0 : v;
   }
-  saveData();
+  await updateExpenseField(id, field, value);
   renderSummary();
   renderExpenses();
 });
 
-document.getElementById("expenseBody").addEventListener("click", (e) => {
+document.getElementById("expenseBody").addEventListener("click", async (e) => {
   const delId = e.target.dataset.deleteExpense;
   if (!delId) return;
-  data.expenses = data.expenses.filter(x => x.id !== delId);
-  saveData();
+  await deleteExpense(delId);
   renderSummary();
   renderExpenses();
 });
 
-document.getElementById("addExpenseBtn").addEventListener("click", () => {
+document.getElementById("addExpenseBtn").addEventListener("click", async () => {
   const newExp = {
     id: uid(), recurringId: null, mes: viewMonth, ano: viewYear,
     descricao: "", dia: today.getDate(), valor: 0, pago: false,
   };
-  data.expenses.push(newExp);
-  saveData();
+  await addExpense(newExp);
   renderSummary();
   renderExpenses();
-  const el = document.querySelector(`[data-focus-id="desc-${newExp.id}"]`);
+  const el = document.querySelector(`[data-id="${newExp.id}"][data-field="descricao"]`);
   if (el) el.focus();
 });
 
 /* ---------- Receitas do mês: edição inline + remover + adicionar ---------- */
 
-document.getElementById("incomeBody").addEventListener("change", (e) => {
+document.getElementById("incomeBody").addEventListener("change", async (e) => {
   const field = e.target.dataset.field;
   const id = e.target.dataset.id;
   if (!field || !id) return;
@@ -222,51 +213,44 @@ document.getElementById("incomeBody").addEventListener("change", (e) => {
     if (e.target.value === "__nova__") {
       const nome = prompt("Nome da nova categoria de receita:");
       if (nome && nome.trim()) {
-        const nomeTrim = nome.trim();
-        if (!data.incomeCategories.includes(nomeTrim)) {
-          data.incomeCategories.push(nomeTrim);
-        }
-        inc.categoria = nomeTrim;
-        saveData();
+        await addIncomeCategory(nome.trim());
+        await updateIncomeField(id, "categoria", nome.trim());
       }
       renderIncomes();
       return;
     }
-    inc.categoria = e.target.value;
+    await updateIncomeField(id, "categoria", e.target.value);
   } else if (field === "dia") {
     const v = parseInt(e.target.value, 10);
-    inc.dia = (v >= 1 && v <= 31) ? v : inc.dia;
+    await updateIncomeField(id, "dia", (v >= 1 && v <= 31) ? v : inc.dia);
   } else if (field === "valor") {
     const v = parseFloat(e.target.value);
-    inc.valor = isNaN(v) ? 0 : v;
+    await updateIncomeField(id, "valor", isNaN(v) ? 0 : v);
   }
-  saveData();
   renderSummary();
   renderIncomes();
 });
 
-document.getElementById("incomeBody").addEventListener("click", (e) => {
+document.getElementById("incomeBody").addEventListener("click", async (e) => {
   const delId = e.target.dataset.deleteIncome;
   if (!delId) return;
-  data.incomes = data.incomes.filter(x => x.id !== delId);
-  saveData();
+  await deleteIncome(delId);
   renderSummary();
   renderIncomes();
 });
 
-document.getElementById("addIncomeBtn").addEventListener("click", () => {
+document.getElementById("addIncomeBtn").addEventListener("click", async () => {
   const newInc = {
     id: uid(), categoria: data.incomeCategories[0], mes: viewMonth, ano: viewYear,
     dia: today.getDate(), valor: 0,
   };
-  data.incomes.push(newInc);
-  saveData();
+  await addIncome(newInc);
   renderSummary();
   renderIncomes();
-  const el = document.querySelector(`[data-focus-id="valor-${newInc.id}"]`);
+  const el = document.querySelector(`[data-id="${newInc.id}"][data-field="valor"]`);
   if (el) el.focus();
 });
 
-/* ---------- Início ---------- */
+/* ---------- Início: aguarda o login antes de renderizar (ver auth.js) ---------- */
 
-render();
+window.__initPage = render;

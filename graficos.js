@@ -1,10 +1,10 @@
 /* Livro-caixa — página de gráficos (graficos.html).
-   Depende de data.js, que deve ser incluído antes deste arquivo. */
+   Depende de data.js e auth.js, incluídos antes deste arquivo. */
 
 let viewYear = today.getFullYear();
 
-function render() {
-  ensureYearExpenses(viewYear);
+async function render() {
+  await ensureYearExpenses(viewYear);
   document.getElementById("yearLabel").textContent = viewYear;
   renderSummary();
   renderGastoRendaChart();
@@ -41,8 +41,6 @@ function renderSummary() {
   `;
 }
 
-/* ---------- Gráfico: gasto x renda por mês (barras duplas) ---------- */
-
 function renderGastoRendaChart() {
   const totals = yearTotals(viewYear);
   const max = Math.max(1, ...totals.map(t => Math.max(t.gasto, t.renda)));
@@ -62,8 +60,6 @@ function renderGastoRendaChart() {
   }).join("");
 }
 
-/* ---------- Gráfico: saldo por mês (barra única, cor por sinal) ---------- */
-
 function renderSaldoChart() {
   const totals = yearTotals(viewYear);
   const maxAbs = Math.max(1, ...totals.map(t => Math.abs(t.saldo)));
@@ -80,12 +76,10 @@ function renderSaldoChart() {
   }).join("");
 }
 
-/* ---------- Gráfico: saldo acumulado no ano (linha) ---------- */
-
 function renderTrendChart() {
   const totals = yearTotals(viewYear);
   const cumulative = [];
-  totals.reduce((acc, t, i) => {
+  totals.reduce((acc, t) => {
     const next = acc + t.saldo;
     cumulative.push(next);
     return next;
@@ -107,7 +101,7 @@ function renderTrendChart() {
     `<circle class="trend-dot ${p.v < 0 ? "negative" : "positive"}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" />`
   ).join("");
 
-  const svg = `
+  document.getElementById("trendChart").innerHTML = `
     <svg class="trend-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
       <line class="trend-zero" x1="${padX}" y1="${midY}" x2="${width - padX}" y2="${midY}" />
       <path class="trend-line" d="${pathD}" />
@@ -117,10 +111,7 @@ function renderTrendChart() {
       ${MONTH_NAMES.map(m => `<span>${m.slice(0, 3)}</span>`).join("")}
     </div>
   `;
-  document.getElementById("trendChart").innerHTML = svg;
 }
-
-/* ---------- Ranking: maiores contas do ano ---------- */
 
 function renderRanking() {
   const ranking = rankExpensesForYear(viewYear).slice(0, 10);
@@ -141,16 +132,16 @@ function renderRanking() {
 
 /* ---------- Navegação de ano ---------- */
 
-document.getElementById("prevYear").addEventListener("click", () => {
+document.getElementById("prevYear").addEventListener("click", async () => {
   viewYear -= 1;
-  render();
+  await render();
 });
 
-document.getElementById("nextYear").addEventListener("click", () => {
+document.getElementById("nextYear").addEventListener("click", async () => {
   viewYear += 1;
-  render();
+  await render();
 });
 
-/* ---------- Início ---------- */
+/* ---------- Início: aguarda o login antes de renderizar (ver auth.js) ---------- */
 
-render();
+window.__initPage = render;

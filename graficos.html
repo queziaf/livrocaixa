@@ -22,6 +22,7 @@
       </div>
       <a class="page-nav" href="index.html">← Painel mensal</a>
       <a class="page-nav" href="contas-fixas.html">Contas fixas →</a>
+      <a class="page-nav" href="#" id="logoutLink">Sair</a>
     </div>
   </header>
 
@@ -49,10 +50,14 @@
   <div class="section-title">Maiores contas do ano</div>
   <div class="panel" id="rankPanel"></div>
 
-  <footer class="note">Os dados ficam salvos apenas neste navegador (localStorage).</footer>
+  <footer class="note">Os dados ficam salvos apenas neste navegador (localStorage), com sincronização automática na nuvem.</footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="supabase-client.js"></script>
 <script src="data.js"></script>
 <script src="graficos.js"></script>
+<script src="auth.js"></script>
 </body>
 </html>
