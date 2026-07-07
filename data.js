@@ -47,6 +47,33 @@ function fmtMoney(v) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/* Formata um número para exibir dentro dos campos editáveis, sempre com
+   separador de milhar e duas casas decimais (ex: 1124 -> "1.124,00"). */
+function formatAmount(v) {
+  return (v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/* Interpreta o texto digitado num campo de valor. Aceita tanto o formato
+   brasileiro ("1.124,00") quanto casos em que o teclado do dispositivo
+   insere ponto como decimal ("1124.5") — sem confundir esse ponto com
+   separador de milhar. */
+function parseAmountInput(str) {
+  if (!str) return 0;
+  let s = String(str).trim();
+  if (s.includes(",")) {
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else {
+    const partes = s.split(".");
+    if (partes.length > 2 || (partes.length === 2 && partes[1].length > 2)) {
+      // mais de um ponto, ou dígitos demais depois dele: são separadores de milhar
+      s = s.replace(/\./g, "");
+    }
+    // um único ponto com até 2 dígitos depois: já é o decimal, mantém como está
+  }
+  const v = parseFloat(s);
+  return isNaN(v) ? 0 : v;
+}
+
 /* ---------- Camada de acesso ao Supabase ---------- */
 
 async function dbInsert(table, rows) {
@@ -299,5 +326,15 @@ function bindEnterBlurs(containerId) {
     if (e.key === "Enter" && e.target.classList.contains("cell-input")) {
       e.target.blur();
     }
+  });
+}
+
+/* Seleciona todo o texto do campo de valor ao focar, pra digitar por cima
+   sem precisar apagar manualmente o "1.124,00" que já está lá. */
+function bindSelectOnFocus(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.addEventListener("focusin", (e) => {
+    if (e.target.classList.contains("amount-input")) e.target.select();
   });
 }

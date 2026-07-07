@@ -16,7 +16,7 @@ function renderRecurringPage() {
         <input class="cell-input dia-input" type="number" min="1" max="31" data-field="dia" data-id="${r.id}" value="${r.dia}" />
       </td>
       <td class="amount-cell amount">
-        <input class="cell-input amount-input" type="number" step="0.01" data-field="valor" data-id="${r.id}" value="${r.valor}" />
+        <input class="cell-input amount-input" type="text" inputmode="decimal" data-field="valor" data-id="${r.id}" value="${formatAmount(r.valor)}" />
       </td>
       <td class="row-actions">
         <button class="btn ghost" data-delete-recurring="${r.id}">remover</button>
@@ -26,6 +26,7 @@ function renderRecurringPage() {
 }
 
 bindEnterBlurs("recurringBody");
+bindSelectOnFocus("recurringBody");
 
 document.getElementById("recurringBody").addEventListener("change", async (e) => {
   const field = e.target.dataset.field;
@@ -40,8 +41,7 @@ document.getElementById("recurringBody").addEventListener("change", async (e) =>
     const v = parseInt(e.target.value, 10);
     await updateRecurringField(id, "dia", (v >= 1 && v <= 31) ? v : rec.dia);
   } else if (field === "valor") {
-    const v = parseFloat(e.target.value);
-    await updateRecurringField(id, "valor", isNaN(v) ? 0 : v);
+    await updateRecurringField(id, "valor", parseAmountInput(e.target.value));
   }
   renderRecurringPage();
 });

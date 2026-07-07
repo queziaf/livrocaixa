@@ -88,8 +88,8 @@ function renderExpenses() {
           <input class="cell-input dia-input" type="number" min="1" max="31" data-field="dia" data-id="${e.id}" value="${e.dia}" />
         </td>
         <td class="amount-cell amount">
-          <input class="cell-input amount-input" type="number" step="0.01" data-field="valor" data-id="${e.id}"
-                 value="${e.valor === 0 ? "" : e.valor}" placeholder="${placeholder}" />
+          <input class="cell-input amount-input" type="text" inputmode="decimal" data-field="valor" data-id="${e.id}"
+                 value="${e.valor === 0 ? "" : formatAmount(e.valor)}" placeholder="${placeholder}" />
         </td>
         <td class="row-actions">
           <button class="btn ghost" data-delete-expense="${e.id}" aria-label="Remover">remover</button>
@@ -122,8 +122,8 @@ function renderIncomes() {
         <input class="cell-input dia-input" type="number" min="1" max="31" data-field="dia" data-id="${i.id}" value="${i.dia}" />
       </td>
       <td class="amount-cell amount">
-        <input class="cell-input amount-input" type="number" step="0.01" data-field="valor" data-id="${i.id}"
-               value="${i.valor === 0 ? "" : i.valor}" placeholder="0,00" />
+        <input class="cell-input amount-input" type="text" inputmode="decimal" data-field="valor" data-id="${i.id}"
+               value="${i.valor === 0 ? "" : formatAmount(i.valor)}" placeholder="0,00" />
       </td>
       <td class="row-actions">
         <button class="btn ghost" data-delete-income="${i.id}">remover</button>
@@ -148,6 +148,8 @@ document.getElementById("nextMonth").addEventListener("click", async () => {
 
 bindEnterBlurs("expenseBody");
 bindEnterBlurs("incomeBody");
+bindSelectOnFocus("expenseBody");
+bindSelectOnFocus("incomeBody");
 
 /* ---------- Contas do mês: checkbox + edição inline + remover + adicionar ---------- */
 
@@ -172,8 +174,7 @@ document.getElementById("expenseBody").addEventListener("change", async (e) => {
     const v = parseInt(e.target.value, 10);
     value = (v >= 1 && v <= 31) ? v : exp.dia;
   } else if (field === "valor") {
-    const v = parseFloat(e.target.value);
-    value = isNaN(v) ? 0 : v;
+    value = parseAmountInput(e.target.value);
   }
   await updateExpenseField(id, field, value);
   renderSummary();
@@ -224,8 +225,7 @@ document.getElementById("incomeBody").addEventListener("change", async (e) => {
     const v = parseInt(e.target.value, 10);
     await updateIncomeField(id, "dia", (v >= 1 && v <= 31) ? v : inc.dia);
   } else if (field === "valor") {
-    const v = parseFloat(e.target.value);
-    await updateIncomeField(id, "valor", isNaN(v) ? 0 : v);
+    await updateIncomeField(id, "valor", parseAmountInput(e.target.value));
   }
   renderSummary();
   renderIncomes();
