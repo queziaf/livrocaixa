@@ -72,7 +72,9 @@ function renderExpenses() {
   body.innerHTML = list.map(e => {
     const days = diffDays(viewYear, viewMonth, e.dia);
     let rowClass = "";
-    if (!e.pago && isCurrentMonth) {
+    if (e.valor > 0) {
+      rowClass = "paid";
+    } else if (isCurrentMonth) {
       if (days < 0) rowClass = "overdue";
       else if (days <= 3) rowClass = "due-soon";
     }

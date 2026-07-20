@@ -176,6 +176,7 @@
   table.ledger tr:last-child td { border-bottom: none; }
   table.ledger tr.overdue td { background: var(--danger-soft); }
   table.ledger tr.due-soon td { background: var(--warn-soft); }
+  table.ledger tr.paid td { background: var(--accent-soft); }
   table.ledger .amount {
     font-family: var(--font-mono);
     text-align: right;
