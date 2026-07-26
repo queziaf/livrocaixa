@@ -166,6 +166,85 @@ async function migrateLocalDataToSupabase() {
   return true;
 }
 
+async function dbUpsert(table, rows) {
+  const { error } = await supabaseClient.from(table).upsert(rows);
+  if (error) console.error(`Erro ao importar em "${table}":`, error);
+  return !error;
+}
+
+/* ---------- Backup manual (baixar/importar um arquivo .json) ---------- */
+
+/* Baixa um arquivo .json com tudo que está no Supabase agora — útil como
+   segurança, por exemplo se o projeto do Supabase ficar indisponível. */
+function exportBackup() {
+  const backup = {
+    app: "livro-caixa",
+    versao: 1,
+    exportadoEm: new Date().toISOString(),
+    recurring: data.recurring,
+    expenses: data.expenses,
+    incomeCategories: data.incomeCategories,
+    incomes: data.incomes,
+  };
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const dataStr = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `livro-caixa-backup-${dataStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* Importa um arquivo .json gerado por exportBackup(). Usa "upsert" (não
+   "insert"), então é seguro rodar mais de uma vez com o mesmo arquivo —
+   ele atualiza em vez de duplicar. Serve tanto para restaurar num projeto
+   novo do Supabase quanto para recuperar depois de perder acesso. */
+async function importBackupFile(file) {
+  const text = await file.text();
+  let backup;
+  try {
+    backup = JSON.parse(text);
+  } catch (e) {
+    alert("Esse arquivo não parece ser um backup válido do Livro-caixa.");
+    return;
+  }
+  if (!backup || backup.app !== "livro-caixa" || !Array.isArray(backup.expenses)) {
+    alert("Esse arquivo não parece ser um backup válido do Livro-caixa.");
+    return;
+  }
+
+  if (!confirm(
+    "Importar esse backup vai restaurar as contas fixas, contas do mês, " +
+    "categorias e receitas dele na sua conta atual (atualiza o que já " +
+    "existir com o mesmo id, sem duplicar). Quer continuar?"
+  )) return;
+
+  if (backup.recurring?.length) {
+    await dbUpsert("recurring", backup.recurring.map(r => ({ id: r.id, descricao: r.descricao, dia: r.dia, valor: r.valor })));
+  }
+  if (backup.expenses?.length) {
+    await dbUpsert("expenses", backup.expenses.map(e => ({
+      id: e.id, recurring_id: e.recurringId, mes: e.mes, ano: e.ano,
+      descricao: e.descricao, dia: e.dia, valor: e.valor, pago: e.pago,
+    })));
+  }
+  if (backup.incomeCategories?.length) {
+    await dbUpsert("income_categories", backup.incomeCategories.map(nome => ({ id: uid(), nome })));
+  }
+  if (backup.incomes?.length) {
+    await dbUpsert("incomes", backup.incomes.map(i => ({
+      id: i.id, categoria: i.categoria, mes: i.mes, ano: i.ano, dia: i.dia, valor: i.valor,
+    })));
+  }
+
+  await fetchAllData();
+  if (window.__initPage) window.__initPage();
+  alert("Backup importado com sucesso!");
+}
+
 /* ---------- Contas fixas ---------- */
 
 async function addRecurring(rec) {

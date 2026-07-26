@@ -65,7 +65,16 @@
     </table>
   </div>
 
-  <footer class="note">Seus dados são salvos automaticamente e sincronizados entre dispositivos.</footer>
+  <footer class="note">
+    <p>Seus dados são salvos automaticamente e sincronizados entre dispositivos.</p>
+    <div class="backup-actions">
+      <button class="btn" id="exportBackupBtn" type="button">Baixar backup (.json)</button>
+      <label class="btn" id="importBackupLabel">
+        Importar backup
+        <input type="file" id="importBackupInput" accept="application/json" hidden />
+      </label>
+    </div>
+  </footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>

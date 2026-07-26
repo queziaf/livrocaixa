@@ -253,6 +253,19 @@ document.getElementById("addIncomeBtn").addEventListener("click", async () => {
   if (el) el.focus();
 });
 
+/* ---------- Backup manual ---------- */
+
+document.getElementById("exportBackupBtn").addEventListener("click", () => {
+  exportBackup();
+});
+
+document.getElementById("importBackupInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = ""; // permite selecionar o mesmo arquivo de novo depois, se precisar
+  if (!file) return;
+  await importBackupFile(file);
+});
+
 /* ---------- Início: aguarda o login antes de renderizar (ver auth.js) ---------- */
 
 window.__initPage = render;

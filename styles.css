@@ -282,6 +282,19 @@
     margin-top: 40px;
   }
 
+  .backup-actions {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .backup-actions .btn {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  label.btn { cursor: pointer; }
+
   @media (max-width: 640px) {
     .summary { grid-template-columns: repeat(2, 1fr); }
 
