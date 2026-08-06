@@ -94,8 +94,23 @@ async function dbDelete(table, id) {
   return !error;
 }
 
-/* Carrega tudo do Supabase para dentro de `data`. Na primeira vez que o
-   usuário loga (nenhuma conta fixa cadastrada), semeia com os padrões. */
+/* Insere, mas se alguma linha esbarrar numa trava de unicidade do banco
+   (ex: a mesma conta fixa já gerada para o mesmo mês), ignora essa linha
+   em silêncio em vez de dar erro — usada para gerar as contas do mês
+   automaticamente, protegendo contra criar duplicatas mesmo se a função
+   for chamada mais de uma vez ao mesmo tempo. */
+async function dbUpsertSkipDuplicates(table, rows, conflictColumns) {
+  const { error } = await supabaseClient
+    .from(table)
+    .upsert(rows, { onConflict: conflictColumns, ignoreDuplicates: true });
+  if (error) console.error(`Erro ao gerar registros em "${table}":`, error);
+  return !error;
+}
+
+/* Carrega tudo do Supabase para dentro de `data`. Semeia com os padrões
+   apenas numa conta genuinamente nova (sem NENHUM histórico ainda) — se
+   você já usou o app e depois apagou todas as contas fixas de propósito,
+   elas não voltam sozinhas. */
 async function fetchAllData() {
   const [recRes, expRes, catRes, incRes] = await Promise.all([
     supabaseClient.from("recurring").select("*"),
@@ -111,7 +126,9 @@ async function fetchAllData() {
     return;
   }
 
-  if (recRes.data.length === 0) {
+  const contaGenuinamenteNova = recRes.data.length === 0 && expRes.data.length === 0;
+
+  if (contaGenuinamenteNova) {
     const seed = DEFAULT_RECURRING.map(r => ({ id: uid(), ...r }));
     await dbInsert("recurring", seed.map(r => ({ id: r.id, descricao: r.descricao, dia: r.dia, valor: r.valor })));
     data.recurring = seed;
@@ -119,7 +136,7 @@ async function fetchAllData() {
     data.recurring = recRes.data.map(r => ({ id: r.id, descricao: r.descricao, dia: r.dia, valor: Number(r.valor) }));
   }
 
-  if (catRes.data.length === 0) {
+  if (catRes.data.length === 0 && contaGenuinamenteNova) {
     const seedCats = DEFAULT_INCOME_CATEGORIES.map(nome => ({ id: uid(), nome }));
     await dbInsert("income_categories", seedCats);
     data.incomeCategories = seedCats.map(c => c.nome);
@@ -313,7 +330,9 @@ async function ensureMonthExpenses(year, month) {
       });
     }
   });
-  if (toInsert.length) await dbInsert("expenses", toInsert);
+  if (toInsert.length) {
+    await dbUpsertSkipDuplicates("expenses", toInsert, "user_id,recurring_id,mes,ano");
+  }
 }
 
 /* Garante os 12 meses do ano (e dezembro do ano anterior, usado na
