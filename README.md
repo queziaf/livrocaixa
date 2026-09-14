@@ -1,8 +1,10 @@
 # Livro-caixa
 
 App pessoal de controle de gastos e receitas mensais. Os dados ficam
-salvos na nuvem (Supabase), então funcionam em qualquer dispositivo onde
-você fizer login com a mesma conta.
+salvos na nuvem (Neon — Postgres com Auth e Data API), então funcionam em
+qualquer dispositivo onde você fizer login com a mesma conta. Migrado do
+Supabase para o Neon por causa da pausa automática por inatividade que o
+Supabase aplica no plano gratuito — o Neon não tem essa pausa.
 
 ## Arquivos
 - `login.html` — tela de login/cadastro
@@ -10,31 +12,31 @@ você fizer login com a mesma conta.
 - `contas-fixas.html` — página de gerenciamento das contas fixas
 - `graficos.html` — página de gráficos e visão anual
 - `styles.css` — visual, compartilhado por todas as páginas
-- `supabase-config.js` — credenciais do seu projeto Supabase
-- `supabase-client.js` — cria a conexão com o Supabase a partir da config acima
-- `data.js` — dados e regras compartilhadas (ler/escrever no Supabase)
+- `neon-config.js` — URLs do seu projeto Neon (Auth e Data API)
+- `neon-client.js` — cria a conexão com o Neon a partir da config acima
+- `data.js` — dados e regras compartilhadas (ler/escrever no Neon)
 - `auth.js` — protege as páginas internas (exige login) e trata o botão "Sair"
 - `app.js` — lógica do painel mensal
 - `contas-fixas.js` — lógica da página de contas fixas
 - `graficos.js` — lógica da página de gráficos
 - `login.js` — lógica da tela de login/cadastro
-- `schema.sql` — script para criar as tabelas no Supabase (rodar uma única vez)
+- `schema-neon.sql` — script para criar as tabelas no Neon (rodar uma única vez)
+- `schema.sql` / `fix-duplicatas.sql` — versões antigas, específicas do
+  Supabase; mantidas só como histórico, não são mais usadas
 
-## Configuração do Supabase (uma vez só)
+## Configuração do Neon (uma vez só)
 
-1. Crie um projeto gratuito em [supabase.com](https://supabase.com)
-2. No painel do projeto, vá em **SQL Editor** → **New query**, cole o
-   conteúdo do arquivo `schema.sql` e clique em **Run**. Isso cria as
-   tabelas e as regras de segurança (cada pessoa só vê os próprios dados).
-3. Vá em **Project Settings** → **API** e copie:
-   - **Project URL**
-   - **anon public key**
-4. Cole esses dois valores no arquivo `supabase-config.js` (já vem
-   preenchido se foi o Claude quem configurou para você).
-5. (Opcional) Em **Authentication** → **Providers** → **Email**, você pode
-   desativar a exigência de confirmação por e-mail, para simplificar o
-   primeiro acesso. Por padrão, o Supabase manda um e-mail de confirmação
-   ao criar a conta.
+1. Crie uma conta gratuita em [console.neon.tech](https://console.neon.tech)
+   e crie um projeto novo.
+2. Vá na aba **Auth** do projeto → **Enable Auth** (login por e-mail/senha).
+   Depois de habilitado, copie a **Auth Base URL** na aba **Configuration**.
+3. Vá na aba **Data API** → **Enable**, marcando **Use Managed Better Auth**
+   e **Grant public schema access**. Copie a **Data API URL** mostrada ali.
+4. Cole essas duas URLs no arquivo `neon-config.js` (já vem preenchido se
+   foi o Claude quem configurou para você).
+5. Vá na aba **SQL Editor**, cole o conteúdo do arquivo `schema-neon.sql`
+   e rode. Isso cria as tabelas e as regras de segurança (cada pessoa só
+   vê os próprios dados).
 
 ## Como usar
 1. Abra `login.html` e crie sua conta (e-mail + senha)
@@ -77,15 +79,14 @@ git push
 
 ## Sobre os dados
 - Os gastos, receitas e contas fixas ficam salvos no banco de dados do
-  Supabase, associados à sua conta — não dependem mais do navegador.
+  Neon, associados à sua conta — não dependem mais do navegador.
 - Cada pessoa só enxerga os próprios dados (protegido por regras de
-  segurança no banco).
+  segurança no banco — Row Level Security, usando `auth.user_id()`).
 - As 10 contas fixas da sua planilha original já vêm pré-cadastradas na
   primeira vez que você faz login (gerenciadas na página "Contas fixas").
   Você pode editar o valor de cada uma mês a mês (elas variam) no painel
   mensal, adicionar novas contas fixas, contas avulsas, e lançar receitas
   por categoria.
-- **Importante:** o `supabase-config.js` tem a chave pública ("anon key")
-  do seu projeto. Ela é segura para ficar em um repositório público — as
-  regras de segurança do banco (Row Level Security) que impedem qualquer
-  pessoa de ver ou mexer nos dados de outra conta, mesmo tendo essa chave.
+- As sessões de login duram por volta de 15 minutos antes de precisar
+  renovar — a biblioteca do Neon faz essa renovação sozinha, então na
+  prática você não deve perceber isso enquanto usa o app.

@@ -1,6 +1,6 @@
 /* Livro-caixa — dados e regras compartilhadas entre as páginas.
-   Depende de supabase-client.js. Deve ser incluído antes de auth.js e do
-   script de cada página (app.js / contas-fixas.js / graficos.js). */
+   Depende de neon-config.js e neon-client.js. Deve ser incluído antes de
+   auth.js e do script de cada página (app.js / contas-fixas.js / graficos.js). */
 
 const LOCAL_BACKUP_KEY = "livro-caixa-data-v1"; // usado só para a migração única
 
@@ -74,22 +74,22 @@ function parseAmountInput(str) {
   return isNaN(v) ? 0 : v;
 }
 
-/* ---------- Camada de acesso ao Supabase ---------- */
+/* ---------- Camada de acesso ao Neon (Auth + Data API) ---------- */
 
 async function dbInsert(table, rows) {
-  const { error } = await supabaseClient.from(table).insert(rows);
+  const { error } = await neonClient.from(table).insert(rows);
   if (error) console.error(`Erro ao salvar em "${table}":`, error);
   return !error;
 }
 
 async function dbUpdate(table, id, patch) {
-  const { error } = await supabaseClient.from(table).update(patch).eq("id", id);
+  const { error } = await neonClient.from(table).update(patch).eq("id", id);
   if (error) console.error(`Erro ao atualizar "${table}":`, error);
   return !error;
 }
 
 async function dbDelete(table, id) {
-  const { error } = await supabaseClient.from(table).delete().eq("id", id);
+  const { error } = await neonClient.from(table).delete().eq("id", id);
   if (error) console.error(`Erro ao remover de "${table}":`, error);
   return !error;
 }
@@ -100,28 +100,29 @@ async function dbDelete(table, id) {
    automaticamente, protegendo contra criar duplicatas mesmo se a função
    for chamada mais de uma vez ao mesmo tempo. */
 async function dbUpsertSkipDuplicates(table, rows, conflictColumns) {
-  const { error } = await supabaseClient
+  const { error } = await neonClient
     .from(table)
     .upsert(rows, { onConflict: conflictColumns, ignoreDuplicates: true });
   if (error) console.error(`Erro ao gerar registros em "${table}":`, error);
   return !error;
 }
 
-/* Carrega tudo do Supabase para dentro de `data`. Semeia com os padrões
+/* Carrega tudo do Neon para dentro de `data`. Semeia com os padrões
    apenas numa conta genuinamente nova (sem NENHUM histórico ainda) — se
    você já usou o app e depois apagou todas as contas fixas de propósito,
    elas não voltam sozinhas. */
 async function fetchAllData() {
+  await neonClientReady;
   const [recRes, expRes, catRes, incRes] = await Promise.all([
-    supabaseClient.from("recurring").select("*"),
-    supabaseClient.from("expenses").select("*"),
-    supabaseClient.from("income_categories").select("*"),
-    supabaseClient.from("incomes").select("*"),
+    neonClient.from("recurring").select("*"),
+    neonClient.from("expenses").select("*"),
+    neonClient.from("income_categories").select("*"),
+    neonClient.from("incomes").select("*"),
   ]);
 
   const err = recRes.error || expRes.error || catRes.error || incRes.error;
   if (err) {
-    console.error("Erro ao carregar dados do Supabase:", err);
+    console.error("Erro ao carregar dados do Neon:", err);
     alert("Não foi possível carregar seus dados agora. Veja o console (F12) para detalhes.");
     return;
   }
@@ -156,7 +157,7 @@ async function fetchAllData() {
 
 /* Importa, uma única vez, os dados que existiam no localStorage deste
    navegador (versão anterior do app, antes da sincronização em nuvem). */
-async function migrateLocalDataToSupabase() {
+async function migrateLocalDataToCloud() {
   const raw = localStorage.getItem(LOCAL_BACKUP_KEY);
   if (!raw) return false;
   let local;
@@ -184,15 +185,15 @@ async function migrateLocalDataToSupabase() {
 }
 
 async function dbUpsert(table, rows) {
-  const { error } = await supabaseClient.from(table).upsert(rows);
+  const { error } = await neonClient.from(table).upsert(rows);
   if (error) console.error(`Erro ao importar em "${table}":`, error);
   return !error;
 }
 
 /* ---------- Backup manual (baixar/importar um arquivo .json) ---------- */
 
-/* Baixa um arquivo .json com tudo que está no Supabase agora — útil como
-   segurança, por exemplo se o projeto do Supabase ficar indisponível. */
+/* Baixa um arquivo .json com tudo que está no banco agora — útil como
+   segurança, por exemplo se o projeto do Neon ficar indisponível. */
 function exportBackup() {
   const backup = {
     app: "livro-caixa",
@@ -218,7 +219,7 @@ function exportBackup() {
 /* Importa um arquivo .json gerado por exportBackup(). Usa "upsert" (não
    "insert"), então é seguro rodar mais de uma vez com o mesmo arquivo —
    ele atualiza em vez de duplicar. Serve tanto para restaurar num projeto
-   novo do Supabase quanto para recuperar depois de perder acesso. */
+   novo no Neon quanto para recuperar depois de perder acesso. */
 async function importBackupFile(file) {
   const text = await file.text();
   let backup;
@@ -278,7 +279,7 @@ async function updateRecurringField(id, field, value) {
   // Propaga descrição/dia para as contas do mês já geradas a partir dela
   if (field === "descricao" || field === "dia") {
     data.expenses.forEach(e => { if (e.recurringId === id) e[field] = value; });
-    const { error } = await supabaseClient.from("expenses").update({ [field]: value }).eq("recurring_id", id);
+    const { error } = await neonClient.from("expenses").update({ [field]: value }).eq("recurring_id", id);
     if (error) console.error("Erro ao propagar alteração da conta fixa:", error);
   }
 }
