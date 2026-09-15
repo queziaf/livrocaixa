@@ -1,10 +1,16 @@
 # Livro-caixa
 
 App pessoal de controle de gastos e receitas mensais. Os dados ficam
-salvos na nuvem (Neon — Postgres com Auth e Data API), então funcionam em
-qualquer dispositivo onde você fizer login com a mesma conta. Migrado do
-Supabase para o Neon por causa da pausa automática por inatividade que o
-Supabase aplica no plano gratuito — o Neon não tem essa pausa.
+salvos na nuvem (Supabase), então funcionam em qualquer dispositivo onde
+você fizer login com a mesma conta.
+
+**Nota:** o app estava em processo de migração para o Neon (por causa da
+pausa por inatividade do plano gratuito do Supabase), mas voltou
+temporariamente pro Supabase por causa de um erro (`"jwk not found"`) do
+lado do Neon, ainda sem solução confirmada com o suporte deles. Os
+arquivos da versão Neon (`neon-config.js`, `neon-client.js`,
+`schema-neon.sql`) não estão em uso agora, mas ficam disponíveis para
+quando o problema for resolvido.
 
 ## Arquivos
 - `login.html` — tela de login/cadastro

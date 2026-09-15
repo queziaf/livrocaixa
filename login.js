@@ -1,5 +1,5 @@
-/* Livro-caixa — login e cadastro via Neon Auth.
-   Depende de neon-config.js e neon-client.js, incluídos antes
+/* Livro-caixa — login e cadastro via Supabase Auth.
+   Depende de supabase-config.js e supabase-client.js, incluídos antes
    deste arquivo. */
 
 const form = document.getElementById("authForm");
@@ -32,15 +32,14 @@ form.addEventListener("submit", async (e) => {
   const email = document.getElementById("authEmail").value.trim();
   const password = document.getElementById("authPassword").value;
   submitEl.disabled = true;
-  await neonClientReady;
 
   if (mode === "login") {
-    const { error } = await neonClient.auth.signInWithPassword({ email, password });
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
     submitEl.disabled = false;
     if (error) { messageEl.textContent = "Erro: " + error.message; return; }
     location.href = "index.html";
   } else {
-    const { error } = await neonClient.auth.signUp({ email, password });
+    const { error } = await supabaseClient.auth.signUp({ email, password });
     submitEl.disabled = false;
     if (error) { messageEl.textContent = "Erro: " + error.message; return; }
     mode = "login";
@@ -52,8 +51,7 @@ form.addEventListener("submit", async (e) => {
 
 /* Se já estiver logado, pula direto pro app */
 (async () => {
-  await neonClientReady;
-  const { data: sessionData } = await neonClient.auth.getSession();
+  const { data: sessionData } = await supabaseClient.auth.getSession();
   if (sessionData && sessionData.session) location.href = "index.html";
 })();
 
