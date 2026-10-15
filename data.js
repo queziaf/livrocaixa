@@ -39,6 +39,8 @@ let data = {
   expenses: [],
   incomeCategories: [],
   incomes: [],
+  debts: [],        // dívidas (empréstimos e financiamentos)
+  debtEntries: [],  // saldo devedor e amortização de cada dívida, mês a mês
 };
 
 const today = new Date();
@@ -152,6 +154,8 @@ async function fetchAllData() {
   data.incomes = incRes.data.map(i => ({
     id: i.id, categoria: i.categoria, mes: i.mes, ano: i.ano, dia: i.dia, valor: Number(i.valor),
   }));
+
+  await fetchDebtsData();
 }
 
 /* Importa, uma única vez, os dados que existiam no localStorage deste
@@ -202,6 +206,8 @@ function exportBackup() {
     expenses: data.expenses,
     incomeCategories: data.incomeCategories,
     incomes: data.incomes,
+    debts: data.debts,
+    debtEntries: data.debtEntries,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -257,9 +263,34 @@ async function importBackupFile(file) {
     })));
   }
 
+  // Dívidas (backups antigos não têm esses campos — nesse caso não há nada a fazer)
+  let faltamTabelasDeDividas = false;
+  if (backup.debts?.length || backup.debtEntries?.length) {
+    if (!debtsAvailable) {
+      faltamTabelasDeDividas = true;
+    } else {
+      if (backup.debts?.length) {
+        await dbUpsert("debts", backup.debts.map(d => ({
+          id: d.id, nome: d.nome, tipo: d.tipo, parcela: d.parcela, cor: d.cor, criado_em: d.criadoEm,
+        })));
+      }
+      if (backup.debtEntries?.length) {
+        await dbUpsert("debt_entries", backup.debtEntries.map(e => ({
+          id: e.id, debt_id: e.debtId, mes: e.mes, ano: e.ano, saldo: e.saldo, amortizacao: e.amortizacao,
+        })));
+      }
+    }
+  }
+
   await fetchAllData();
   if (window.__initPage) window.__initPage();
-  alert("Backup importado com sucesso!");
+  alert(
+    "Backup importado com sucesso!" +
+    (faltamTabelasDeDividas
+      ? "\n\nObs.: o backup tem dívidas, mas as tabelas de dívidas ainda não existem no banco. " +
+        "Rode o schema-dividas.sql no Supabase e importe o backup de novo para trazê-las."
+      : "")
+  );
 }
 
 /* ---------- Contas fixas ---------- */
@@ -413,6 +444,171 @@ function rankExpensesForYear(year) {
     .map(([descricao, total]) => ({ descricao, total }))
     .filter(r => r.total > 0)
     .sort((a, b) => b.total - a.total);
+}
+
+/* ---------- Dívidas (saldo devedor) ---------- */
+
+const DEBT_TYPES = { emprestimo: "Empréstimo", financiamento: "Financiamento" };
+const DEBT_COLOR_SLOTS = 5; // cores distintas nos gráficos; da 6ª dívida em diante vira cinza
+
+/* Fica falso enquanto as tabelas de dívidas não existirem no banco (ou se a
+   consulta falhar) — assim o resto do app continua funcionando normalmente. */
+let debtsAvailable = false;
+
+async function fetchDebtsData() {
+  try {
+    const [dRes, eRes] = await Promise.all([
+      supabaseClient.from("debts").select("*").order("criado_em", { ascending: true }),
+      supabaseClient.from("debt_entries").select("*"),
+    ]);
+    const err = dRes.error || eRes.error;
+    if (err) throw err;
+
+    data.debts = dRes.data.map(d => ({
+      id: d.id, nome: d.nome, tipo: d.tipo, parcela: Number(d.parcela),
+      cor: d.cor, criadoEm: d.criado_em,
+    }));
+    data.debtEntries = eRes.data.map(e => ({
+      id: e.id, debtId: e.debt_id, mes: e.mes, ano: e.ano,
+      saldo: e.saldo === null ? null : Number(e.saldo),
+      amortizacao: Number(e.amortizacao),
+    }));
+    debtsAvailable = true;
+  } catch (err) {
+    debtsAvailable = false;
+    data.debts = [];
+    data.debtEntries = [];
+    console.warn("Tabelas de dívidas indisponíveis (rode o schema-dividas.sql no Supabase):", err);
+  }
+}
+
+/* Menor posição de cor ainda livre — cada dívida mantém a mesma cor mesmo
+   que outra seja removida depois. */
+function nextDebtColorSlot() {
+  const usadas = new Set(data.debts.map(d => d.cor));
+  for (let i = 0; i < DEBT_COLOR_SLOTS; i++) if (!usadas.has(i)) return i;
+  return DEBT_COLOR_SLOTS;
+}
+
+async function addDebt(debt) {
+  data.debts.push(debt);
+  return dbInsert("debts", {
+    id: debt.id, nome: debt.nome, tipo: debt.tipo, parcela: debt.parcela,
+    cor: debt.cor, criado_em: debt.criadoEm,
+  });
+}
+
+async function updateDebtField(id, field, value) {
+  const d = data.debts.find(x => x.id === id);
+  if (!d) return;
+  d[field] = value;
+  await dbUpdate("debts", id, { [field]: value });
+}
+
+async function deleteDebt(id) {
+  data.debts = data.debts.filter(d => d.id !== id);
+  data.debtEntries = data.debtEntries.filter(e => e.debtId !== id);
+  await dbDelete("debts", id); // os lançamentos dela somem junto (cascade no banco)
+}
+
+function getDebtEntry(debtId, year, month) {
+  return data.debtEntries.find(e => e.debtId === debtId && e.ano === year && e.mes === month) || null;
+}
+
+/* Grava o lançamento de uma dívida num mês. Cria na primeira vez, atualiza
+   depois, e apaga se ficar vazio (sem saldo e sem amortização) — assim não
+   sobram linhas "fantasma" no banco. `patch` pode ter `saldo` (número ou
+   null) e/ou `amortizacao`. */
+async function saveDebtEntry(debtId, year, month, patch) {
+  let entry = getDebtEntry(debtId, year, month);
+  const isNew = !entry;
+  if (isNew) entry = { id: uid(), debtId, mes: month, ano: year, saldo: null, amortizacao: 0 };
+  Object.assign(entry, patch);
+  const vazio = entry.saldo === null && !(entry.amortizacao > 0);
+
+  if (isNew) {
+    if (vazio) return;
+    data.debtEntries.push(entry);
+    await dbInsert("debt_entries", {
+      id: entry.id, debt_id: debtId, mes: month, ano: year,
+      saldo: entry.saldo, amortizacao: entry.amortizacao,
+    });
+  } else if (vazio) {
+    data.debtEntries = data.debtEntries.filter(e => e.id !== entry.id);
+    await dbDelete("debt_entries", entry.id);
+  } else {
+    await dbUpdate("debt_entries", entry.id, { saldo: entry.saldo, amortizacao: entry.amortizacao });
+  }
+}
+
+/* Último saldo anotado de uma dívida até o mês indicado (inclusive). Se você
+   não lançou nada num mês, vale o saldo do último mês em que lançou. Devolve
+   null se ainda não há nenhum saldo anotado até lá. */
+function debtBalanceAt(debtId, year, month) {
+  const alvo = year * 12 + month;
+  let melhor = null;
+  for (const e of data.debtEntries) {
+    if (e.debtId !== debtId || e.saldo === null) continue;
+    const k = e.ano * 12 + e.mes;
+    if (k <= alvo && (!melhor || k > melhor.k)) melhor = { k, saldo: e.saldo, mes: e.mes, ano: e.ano };
+  }
+  return melhor;
+}
+
+/* Primeiro saldo já anotado de uma dívida (ponto de partida do acompanhamento). */
+function firstDebtBalance(debtId) {
+  let primeiro = null;
+  for (const e of data.debtEntries) {
+    if (e.debtId !== debtId || e.saldo === null) continue;
+    const k = e.ano * 12 + e.mes;
+    if (!primeiro || k < primeiro.k) primeiro = { k, saldo: e.saldo, mes: e.mes, ano: e.ano };
+  }
+  return primeiro;
+}
+
+/* Foto do saldo devedor num mês: um item por dívida + o total. */
+function debtsSnapshot(year, month) {
+  const itens = data.debts.map(debt => {
+    const b = debtBalanceAt(debt.id, year, month);
+    return {
+      debt,
+      saldo: b ? b.saldo : null,
+      deMes: b ? { mes: b.mes, ano: b.ano } : null,
+      exato: !!b && b.mes === month && b.ano === year,
+    };
+  });
+  const total = itens.reduce((soma, it) => soma + (it.saldo || 0), 0);
+  return { itens, total };
+}
+
+function prevMonthOf(year, month) {
+  return month === 0 ? { ano: year - 1, mes: 11 } : { ano: year, mes: month - 1 };
+}
+
+/* Os `count` meses terminando em (endYear, endMonth), do mais antigo ao mais novo. */
+function debtSeries(endYear, endMonth, count = 12) {
+  const serie = [];
+  for (let i = count - 1; i >= 0; i--) {
+    let m = endMonth - i;
+    let y = endYear;
+    while (m < 0) { m += 12; y -= 1; }
+    serie.push({ ano: y, mes: m, ...debtsSnapshot(y, m) });
+  }
+  return serie;
+}
+
+/* Quanto foi amortizado a mais: no mês, no ano até o mês, e no total até o mês. */
+function amortizedTotals(year, month) {
+  const alvo = year * 12 + month;
+  let noMes = 0, noAno = 0, total = 0;
+  for (const e of data.debtEntries) {
+    const k = e.ano * 12 + e.mes;
+    if (k > alvo) continue;
+    total += e.amortizacao;
+    if (e.ano === year) noAno += e.amortizacao;
+    if (k === alvo) noMes += e.amortizacao;
+  }
+  return { noMes, noAno, total };
 }
 
 /* ---------- Utilitário: Enter tira o foco do campo (dispara "change") ---------- */
