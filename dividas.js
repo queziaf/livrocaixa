@@ -39,6 +39,9 @@ function fmtCompact(v) {
 /* ---------- Render ---------- */
 
 function render() {
+  if (typeof debtsAvailable === "undefined" || typeof debtSeries !== "function") {
+    throw new Error("data.js está desatualizado no site — suba a versão nova do data.js junto com dividas.js");
+  }
   document.getElementById("setupNotice").hidden = debtsAvailable;
   document.getElementById("debtContent").hidden = !debtsAvailable;
   if (!debtsAvailable) return;

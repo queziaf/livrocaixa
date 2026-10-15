@@ -11,6 +11,22 @@
 </head>
 <body>
 
+<!-- Se algo der errado ao carregar, mostra o motivo na tela em vez de página em branco -->
+<script>
+  window.addEventListener("error", function (e) {
+    if (e.target && e.target !== window) return; // ignora falhas de carregar fontes/imagens
+    var b = document.getElementById("errBanner");
+    if (!b) {
+      b = document.createElement("div");
+      b.id = "errBanner";
+      b.style.cssText = "margin:16px;padding:14px 16px;border:1px solid #b3402f;background:#f3e3df;color:#5a1d12;border-radius:8px;font:13px/1.5 monospace;white-space:pre-wrap";
+      document.body.insertBefore(b, document.body.firstChild);
+    }
+    var onde = (e.filename || "").split("/").pop();
+    b.textContent += "Erro: " + (e.message || "desconhecido") + (onde ? "  (" + onde + ":" + e.lineno + ")" : "") + "\n";
+  }, true);
+</script>
+
 <div class="wrap">
   <header class="top">
     <div class="brand">Livro-<span>caixa</span></div>
