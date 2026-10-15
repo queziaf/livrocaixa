@@ -29,23 +29,28 @@
 
   <section class="summary" id="summary"></section>
 
-  <div class="section-title">Gasto x renda por mês</div>
+  <div class="section-title"><span>Gasto x renda por mês</span><button class="btn" type="button" data-toggle="gastoRenda" aria-pressed="false">Ver como tabela</button></div>
   <div class="panel chart-panel">
+    <div data-view="gastoRenda">
     <div class="chart-legend">
       <span><span class="swatch gasto"></span>Gasto</span>
       <span><span class="swatch renda"></span>Renda</span>
     </div>
     <div class="bars" id="gastoRendaBars"></div>
+    </div>
+    <div class="table-wrap" data-table="gastoRenda" hidden></div>
   </div>
 
-  <div class="section-title">Progresso do saldo por mês</div>
+  <div class="section-title"><span>Progresso do saldo por mês</span><button class="btn" type="button" data-toggle="saldo" aria-pressed="false">Ver como tabela</button></div>
   <div class="panel chart-panel">
-    <div class="bars" id="saldoBars"></div>
+    <div data-view="saldo"><div class="bars" id="saldoBars"></div></div>
+    <div class="table-wrap" data-table="saldo" hidden></div>
   </div>
 
-  <div class="section-title">Saldo acumulado no ano</div>
+  <div class="section-title"><span>Saldo acumulado no ano</span><button class="btn" type="button" data-toggle="trend" aria-pressed="false">Ver como tabela</button></div>
   <div class="panel chart-panel">
-    <div id="trendChart"></div>
+    <div data-view="trend"><div id="trendChart"></div></div>
+    <div class="table-wrap" data-table="trend" hidden></div>
   </div>
 
   <div class="section-title">Maiores contas do ano</div>

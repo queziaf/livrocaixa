@@ -11,7 +11,61 @@ async function render() {
   renderSaldoChart();
   renderTrendChart();
   renderRanking();
+  renderTables();
+  applyViews();
 }
+
+/* ---------- "Ver como tabela": mesmos números dos gráficos, em tabela ---------- */
+
+const tableMode = { gastoRenda: false, saldo: false, trend: false };
+
+function monthTable(headers, rows) {
+  return `<table class="data-table">
+    <thead><tr>${headers.map(t => `<th>${t}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr${r[0] === "Total" ? ' class="total"' : ""}>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody>
+  </table>`;
+}
+
+function renderTables() {
+  const totals = yearTotals(viewYear);
+  const nomes = MONTH_NAMES.map(m => m.charAt(0).toUpperCase() + m.slice(1));
+  const tg = totals.reduce((s, t) => s + t.gasto, 0);
+  const tr = totals.reduce((s, t) => s + t.renda, 0);
+
+  const linhasGR = totals.map((t, m) => [nomes[m], fmtMoney(t.gasto), fmtMoney(t.renda), fmtMoney(t.saldo)]);
+  linhasGR.push(["Total", fmtMoney(tg), fmtMoney(tr), fmtMoney(tr - tg)]);
+  document.querySelector('[data-table="gastoRenda"]').innerHTML =
+    monthTable(["Mês", "Gasto", "Renda", "Saldo"], linhasGR);
+
+  document.querySelector('[data-table="saldo"]').innerHTML =
+    monthTable(["Mês", "Saldo"], totals.map((t, m) => [nomes[m], fmtMoney(t.saldo)]));
+
+  let acc = 0;
+  document.querySelector('[data-table="trend"]').innerHTML =
+    monthTable(["Mês", "Saldo do mês", "Acumulado"], totals.map((t, m) => {
+      acc += t.saldo;
+      return [nomes[m], fmtMoney(t.saldo), fmtMoney(acc)];
+    }));
+}
+
+function applyViews() {
+  Object.keys(tableMode).forEach(k => {
+    const comTabela = tableMode[k];
+    document.querySelector(`[data-view="${k}"]`).hidden = comTabela;
+    document.querySelector(`[data-table="${k}"]`).hidden = !comTabela;
+    const b = document.querySelector(`[data-toggle="${k}"]`);
+    b.textContent = comTabela ? "Ver como gráfico" : "Ver como tabela";
+    b.setAttribute("aria-pressed", String(comTabela));
+  });
+}
+
+document.querySelectorAll("[data-toggle]").forEach(b => {
+  b.addEventListener("click", () => {
+    const k = b.dataset.toggle;
+    tableMode[k] = !tableMode[k];
+    applyViews();
+  });
+});
 
 function renderSummary() {
   const totals = yearTotals(viewYear);
