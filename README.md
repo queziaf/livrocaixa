@@ -96,3 +96,16 @@ git push
 - As sessões de login duram por volta de 15 minutos antes de precisar
   renovar — a biblioteca do Neon faz essa renovação sozinha, então na
   prática você não deve perceber isso enquanto usa o app.
+
+## Página Dívidas (saldo devedor)
+
+Acompanhe empréstimos e financiamentos em um lugar só (`dividas.html`, link "Dívidas →" no topo).
+
+**Antes do primeiro uso (uma vez só):** no Supabase, abra *SQL Editor → New query*, cole o conteúdo de `schema-dividas.sql` e clique em *Run*. Pode rodar de novo sem problema.
+
+Como funciona:
+- Cadastre cada dívida (nome, tipo, parcela). Há um botão para criar de uma vez Financiamento Caixa, Empréstimo Nubank e Empréstimo Itaú.
+- Todo mês, em "Lançar o mês", anote o saldo devedor que o banco informa depois de pagar a parcela e, se amortizou a mais, o valor da amortização extra.
+- Meses sem lançamento usam o último saldo anotado (aparece "saldo de mm/aaaa").
+- O resumo mostra o saldo total, a variação contra o mês anterior, as parcelas por mês e o total amortizado no ano; o gráfico mostra os últimos 12 meses por dívida.
+- Dívidas e saldos entram no backup (JSON) e podem ser restaurados.

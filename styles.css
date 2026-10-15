@@ -468,3 +468,153 @@
   background: #fff;
   color: var(--ink);
 }
+
+/* ---------- Cabeçalho: botões quebram de linha em telas estreitas ---------- */
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* ---------- Página de dívidas ---------- */
+.hint { color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+.rel { position: relative; }
+.dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  margin-right: 8px;
+  flex: 0 0 auto;
+  background: var(--c, var(--line-strong));
+}
+
+.notice { padding: 18px 20px; border-color: var(--warn); background: var(--warn-soft); }
+.notice p { margin: 8px 0; font-size: 14px; }
+.notice ol { margin: 8px 0 0 20px; padding: 0; font-size: 14px; line-height: 1.7; }
+.notice code { font-family: var(--font-mono); font-size: 13px; }
+
+.empty-state { padding: 28px 24px; text-align: center; }
+.empty-state h2 { font-family: var(--font-display); font-size: 20px; margin: 0 0 8px; }
+.empty-state p { margin: 6px 0; font-size: 14px; color: var(--ink-soft); }
+.empty-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 16px 0 10px; }
+
+.chart-legend { flex-wrap: wrap; }
+.chart-legend > span { display: inline-flex; align-items: center; }
+
+/* Gráfico de barras empilhadas */
+.dchart {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  padding-top: 8px;
+}
+.dchart .chart-empty { grid-column: 1 / -1; }
+.daxis { position: relative; width: 74px; margin-right: 8px; }
+.daxis span {
+  position: absolute;
+  right: 0;
+  transform: translateY(50%);
+  font-size: 11px;
+  color: #898781;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.dplot { position: relative; border-bottom: 1px solid var(--line-strong); }
+.dgrid { position: absolute; left: 0; right: 0; height: 1px; background: var(--line); }
+.dcols { position: absolute; inset: 0; display: flex; gap: 6px; }
+.dcol {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+}
+.dcol:hover, .dcol:focus-visible { background: var(--accent-soft); outline: none; }
+.dcol:focus-visible { box-shadow: 0 0 0 2px var(--accent); }
+.dstack { position: relative; width: 100%; max-width: 24px; }
+.dseg { position: absolute; left: 0; right: 0; }
+.dxlabels { display: flex; gap: 6px; margin-top: 6px; }
+.dxlabel {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: lowercase;
+  line-height: 1.3;
+}
+.dxyear { display: block; font-family: var(--font-mono); font-size: 10px; color: #898781; }
+
+.dtip {
+  position: absolute;
+  z-index: 5;
+  min-width: 190px;
+  max-width: 280px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  padding: 10px 12px;
+  font-size: 12px;
+  pointer-events: none;
+}
+.dtip[hidden] { display: none; }
+.tip-title { font-weight: 600; margin-bottom: 6px; text-transform: capitalize; }
+.tip-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.tip-key { width: 10px; height: 10px; border-radius: 3px; flex: 0 0 auto; }
+.tip-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-soft); }
+.tip-val { font-family: var(--font-mono); white-space: nowrap; }
+.tip-total { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 6px; font-weight: 600; }
+.tip-total .tip-name { color: var(--ink); }
+
+.table-wrap { overflow-x: auto; }
+table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data-table th, table.data-table td {
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+table.data-table th:first-child, table.data-table td:first-child { text-align: left; }
+table.data-table th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); font-weight: 500; }
+table.data-table td { font-family: var(--font-mono); }
+table.data-table td:first-child { font-family: var(--font-body); }
+table.data-table tr:last-child td { border-bottom: none; font-weight: 600; }
+
+/* Lista de saldo por dívida */
+.debt-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.2fr) 2fr auto;
+  gap: 4px 18px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.debt-row:last-child { border-bottom: none; }
+.debt-name { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; min-width: 0; }
+.debt-name .dot { align-self: center; }
+.debt-title { font-weight: 500; }
+.debt-meta { font-size: 12px; color: var(--ink-soft); }
+.debt-value { font-family: var(--font-mono); font-size: 16px; font-weight: 500; text-align: right; }
+.debt-none { font-family: var(--font-body); font-size: 13px; color: var(--ink-soft); font-weight: 400; }
+.debt-track { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--c) 18%, var(--paper-raised)); overflow: hidden; }
+.debt-fill { height: 100%; background: var(--c); border-radius: 999px; }
+.debt-sub { grid-column: 1 / -1; font-size: 12px; color: var(--ink-soft); }
+
+@media (max-width: 640px) {
+  .top-actions { justify-content: flex-start; }
+  .daxis { width: 58px; }
+  .dcols, .dxlabels { gap: 3px; }
+  .dxlabel { font-size: 9px; }
+  .debt-row { grid-template-columns: 1fr auto; }
+  .debt-bar { grid-column: 1 / -1; order: 3; }
+  .debt-sub { order: 4; }
+  #entryTable td.amount-cell::before,
+  #manageTable td.amount-cell::before { content: attr(data-label) " R$"; }
+  table.ledger td.tipo-cell { flex: 0 0 auto; }
+  table.ledger td.tipo-cell select { width: auto; }
+}

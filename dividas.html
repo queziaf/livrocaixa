@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dívidas — Livro-caixa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">Livro-<span>caixa</span></div>
+    <div class="top-actions">
+      <div class="month-nav">
+        <button id="prevMonth" aria-label="Mês anterior">‹</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button id="nextMonth" aria-label="Próximo mês">›</button>
+      </div>
+      <a class="page-nav" href="index.html">← Painel mensal</a>
+      <a class="page-nav" href="graficos.html">Gráficos →</a>
+      <a class="page-nav" href="contas-fixas.html">Contas fixas →</a>
+      <a class="page-nav" href="#" id="logoutLink">Sair</a>
+    </div>
+  </header>
+
+  <!-- Aparece só se as tabelas de dívidas ainda não existirem no banco -->
+  <section id="setupNotice" class="panel notice" hidden>
+    <strong>Falta um passo antes de usar esta página</strong>
+    <p>As tabelas de dívidas ainda não existem no seu banco de dados. Faça isso uma única vez:</p>
+    <ol>
+      <li>No Supabase, abra <b>SQL Editor</b> → <b>New query</b>.</li>
+      <li>Cole o conteúdo do arquivo <code>schema-dividas.sql</code> e clique em <b>Run</b>.</li>
+      <li>Volte aqui e recarregue a página.</li>
+    </ol>
+  </section>
+
+  <div id="debtContent" hidden>
+
+    <!-- Aparece só enquanto não há nenhuma dívida cadastrada -->
+    <section id="emptyState" class="panel empty-state" hidden>
+      <h2>Nenhuma dívida cadastrada ainda</h2>
+      <p>Cadastre seus empréstimos e financiamentos para acompanhar o saldo devedor de cada um e o total.</p>
+      <div class="empty-actions">
+        <button class="btn primary" id="seedDebtsBtn" type="button">Criar as 3 das minhas contas fixas</button>
+        <button class="btn" id="emptyAddBtn" type="button">+ dívida em branco</button>
+      </div>
+      <p class="hint">O primeiro botão cria Financiamento Caixa, Empréstimo Nubank e Empréstimo Itaú — você pode renomear ou remover depois.</p>
+    </section>
+
+    <div id="hasDebts">
+      <section class="summary" id="summary"></section>
+
+      <div class="section-title">
+        <span>Saldo devedor — 12 meses até <span id="rangeLabel"></span></span>
+        <button class="btn" id="toggleTable" type="button" aria-pressed="false">Ver como tabela</button>
+      </div>
+      <div class="panel chart-panel rel" id="chartPanel">
+        <div class="chart-legend" id="debtLegend"></div>
+        <div id="debtChartWrap"><div class="dchart" id="debtChart"></div></div>
+        <div class="table-wrap" id="chartTableWrap" hidden></div>
+        <div class="dtip" id="debtTip" role="status" hidden></div>
+      </div>
+
+      <div class="section-title">
+        <span>Saldo por dívida — <span id="listMonthLabel"></span></span>
+      </div>
+      <div class="panel" id="debtList"></div>
+
+      <div class="section-title">
+        <span>Lançar o mês — <span id="entryMonthLabel"></span></span>
+      </div>
+      <div class="panel">
+        <table class="ledger" id="entryTable">
+          <thead>
+            <tr>
+              <th>Dívida</th>
+              <th class="amount">Saldo devedor</th>
+              <th class="amount">Amortização extra</th>
+            </tr>
+          </thead>
+          <tbody id="entryBody"></tbody>
+        </table>
+        <div class="panel-footer hint">
+          Anote o saldo devedor que o banco informa depois de pagar a parcela do mês. Se você
+          amortizou a mais, registre o valor em “Amortização extra”. Meses sem lançamento
+          usam o último saldo anotado. Deixe o saldo em branco para apagar o lançamento do mês.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">
+      <span>Minhas dívidas</span>
+      <button class="btn primary" id="addDebtBtn" type="button">+ dívida</button>
+    </div>
+    <div class="panel">
+      <table class="ledger" id="manageTable">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Tipo</th>
+            <th class="amount">Parcela mensal</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="manageBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="note">Os dados são salvos automaticamente e sincronizados entre dispositivos.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script src="supabase-client.js"></script>
+<script src="data.js"></script>
+<script src="dividas.js"></script>
+<script src="auth.js"></script>
+</body>
+</html>
